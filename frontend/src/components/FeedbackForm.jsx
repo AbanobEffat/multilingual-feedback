@@ -1,30 +1,29 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { postFeedback } from '../api/feedback'
 
-export default function FeedbackForm() {
+export default function FeedbackForm(){
   const [text, setText] = useState('')
-  const [productId, setProductId] = useState('')
   const [loading, setLoading] = useState(false)
-
-  async function submit(e) {
+  const [msg, setMsg] = useState(null)
+  const submit = async (e) => {
     e.preventDefault()
-    setLoading(true)
-    try {
-      await postFeedback({ text, product_id: productId ? Number(productId) : null })
+    if(!text.trim()) return
+    setLoading(true); setMsg(null)
+    try{
+      await postFeedback({ text })
+      setMsg('Submitted!')
       setText('')
-      setProductId('')
-      alert('Submitted')
-    } catch (err) {
-      console.error(err)
-      alert('Submit failed')
-    } finally { setLoading(false) }
+    }catch(err){
+      setMsg('Submit failed: ' + (err?.response?.data?.detail || err.message))
+    }finally{
+      setLoading(false)
+    }
   }
-
   return (
-    <form onSubmit={submit}>
-      <textarea value={text} onChange={e => setText(e.target.value)} placeholder="Write feedback..." />
-      <input value={productId} onChange={e=>setProductId(e.target.value)} placeholder="Product ID (optional)" />
-      <button type="submit" disabled={loading}>Submit</button>
+    <form onSubmit={submit} style={{display:'grid', gap:8, marginBottom:16}}>
+      <textarea rows={4} value={text} onChange={e=>setText(e.target.value)} placeholder="Type feedback in any language..." />
+      <button disabled={loading}>{loading ? 'Submitting...' : 'Submit Feedback'}</button>
+      {msg && <div style={{opacity:0.8}}>{msg}</div>}
     </form>
   )
 }
