@@ -3,6 +3,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 from app.db import get_db
 from app.models.feedback_model import Feedback
+from app.ai_client import analyze_sentiment
 
 router = APIRouter()
 
@@ -12,17 +13,13 @@ class FeedbackCreate(BaseModel):
 
 @router.post("/", status_code=201)
 async def create_feedback(payload: FeedbackCreate, db: Session = Depends(get_db)):
-    # Placeholder for Gemini AI
-    detected_language = "en"
-    translated = payload.text
-    sentiment = "neutral"
-
+    ai = await analyze_sentiment(payload.text)
     db_obj = Feedback(
         product_id=payload.product_id,
         original_text=payload.text,
-        translated_text=translated,
-        language=detected_language,
-        sentiment=sentiment,
+        translated_text=ai["translated_text"],
+        language=ai["language"],
+        sentiment=ai["sentiment"],
     )
     db.add(db_obj)
     db.commit()

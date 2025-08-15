@@ -17,6 +17,11 @@ services:
       - '8000:8000'
     environment:
       - DATABASE_URL=postgresql://user:pass@db:5432/feedbackdb
+      - GEMINI_PROVIDER=google
+      - GEMINI_API_KEY=AIzaSyDuXve9WfpQ_YefCR8n43jkV2AMw8yZ2A8
+      - GEMINI_MODEL=gemini-2.0-flash   
+      - GEMINI_TIMEOUT=20
+
     depends_on:
       - db
 

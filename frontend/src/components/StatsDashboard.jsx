@@ -3,8 +3,14 @@ import { getStats } from '../api/feedback'
 
 export default function StatsDashboard(){
   const [stats, setStats] = useState(null)
-  useEffect(()=>{ getStats().then(r=>setStats(r.data)).catch(()=>{}) }, [])
-  if(!stats) return <div>Loading...</div>
+  const [error, setError] = useState(null)
+  useEffect(()=>{
+    getStats()
+      .then(r=>setStats(r.data))
+      .catch(e=>setError(e?.message || 'Failed to load stats'))
+  }, [])
+  if (error) return <div style={{color:'crimson'}}>Stats error: {error}</div>
+  if (!stats) return <div>Loading stats…</div>
   return <div>
     <h3>Overview</h3>
     <ul>

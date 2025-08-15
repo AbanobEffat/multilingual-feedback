@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 from pydantic import BaseModel
+from app.ai_client import translate_text
 
 router = APIRouter()
 
@@ -12,4 +13,5 @@ class TranslateOut(BaseModel):
 
 @router.post("/", response_model=TranslateOut)
 async def translate(payload: TranslateIn):
-    return {"translated_text": payload.text, "language": "en"}
+    r = await translate_text(payload.text)
+    return r
