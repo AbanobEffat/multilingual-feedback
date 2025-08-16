@@ -10,7 +10,15 @@ export default function FeedbackList({ filters, refreshTick }) {
   const load = () => {
     setLoading(true); setError(null)
     getFeedback({ limit: 20, offset: 0, ...filters })
-      .then(r => setData(r.data))
+      .then(r => {
+        // support both shapes: either an array or {total, items}
+        const payload = r.data
+        if (Array.isArray(payload)) {
+          setData({ total: payload.length, items: payload })
+        } else {
+          setData({ total: payload.total ?? payload.items?.length ?? 0, items: payload.items ?? [] })
+        }
+      })
       .catch(e => setError(e?.message || 'Failed to load feedback'))
       .finally(() => setLoading(false))
   }
@@ -29,8 +37,8 @@ export default function FeedbackList({ filters, refreshTick }) {
         {data.items.map(f => {
           const lang = (f.language || '').toLowerCase()
           const isEnglish = lang === 'en'
+          // Show translation block whenever it exists and source != EN
           const showTranslation = !isEnglish && f.translated_text && f.translated_text !== f.original_text
-          // Heuristic: RTL layout for Arabic/Hebrew originals
           const rtl = ['ar','fa','he','ur'].includes(lang)
 
           return (
@@ -40,16 +48,13 @@ export default function FeedbackList({ filters, refreshTick }) {
                 {f.product_id ? <> • Product: <strong>{f.product_id}</strong></> : null}
               </div>
 
-              {/* Original text */}
-              <div style={{
-                padding:10, borderRadius:8, background:'#fafafa',
-                direction: rtl ? 'rtl' : 'ltr'
-              }}>
-                <span style={{fontSize:12, opacity:.7, marginRight:6}}>{isEnglish ? 'Original (EN)' : `Original (${lang})`}:</span>
+              <div style={{padding:10, borderRadius:8, background:'#fafafa', direction: rtl ? 'rtl' : 'ltr'}}>
+                <span style={{fontSize:12, opacity:.7, marginRight:6}}>
+                  {isEnglish ? 'Original (EN)' : `Original (${lang || '?'})`}:
+                </span>
                 <span>{f.original_text}</span>
               </div>
 
-              {/* English translation (only if source != en) */}
               {showTranslation && (
                 <div style={{marginTop:8, padding:10, borderRadius:8, background:'#f5fbff'}}>
                   <span style={{fontSize:12, opacity:.7, marginRight:6}}>English:</span>
