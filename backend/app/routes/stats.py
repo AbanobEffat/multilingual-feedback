@@ -1,10 +1,37 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from sqlalchemy import func, case
 from app.db import get_db
 from app.models.feedback_model import Feedback
+from app import events  
+import json
 
 router = APIRouter()
+
+@router.get("/stream")
+async def stream(request: Request):
+    """
+    SSE stream that pushes a message whenever stats might have changed.
+    Frontend can refetch /stats/overview on each message.
+    """
+    q = await events.subscribe()
+
+    async def event_generator():
+        # initial ping (helps some proxies keep the connection open)
+        yield "event: ping\ndata: {}\n\n"
+        try:
+            while True:
+                # if client disconnected, stop
+                if await request.is_disconnected():
+                    break
+                payload = await q.get()
+                yield f"data: {json.dumps(payload)}\n\n"
+        finally:
+            await events.unsubscribe(q)
+
+    return StreamingResponse(event_generator(), media_type="text/event-stream")
+
 
 @router.get("/overview")
 async def overview(db: Session = Depends(get_db)):
@@ -40,3 +67,11 @@ async def trends(days: int = 30, interval: str = "day", db: Session = Depends(ge
         "labels": labels, "total": total, "positive": positive, "neutral": neutral, "negative": negative,
         "pct_positive": pct_p, "pct_neutral": pct_u, "pct_negative": pct_n, "interval": interval, "days": days
     }
+@router.get("")
+async def stats_alias(db: Session = Depends(get_db)):
+    # Alias for GET /api/stats → return the overview payload
+    total = db.query(Feedback).count()
+    pos = db.query(Feedback).filter(Feedback.sentiment == "positive").count()
+    neg = db.query(Feedback).filter(Feedback.sentiment == "negative").count()
+    neu = total - pos - neg
+    return {"total": total, "positive": pos, "neutral": neu, "negative": neg}

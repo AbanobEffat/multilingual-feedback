@@ -1,29 +1,33 @@
-import React, { useState } from 'react'
+// frontend/src/components/FeedbackForm.jsx
+import { useState } from 'react'
 import { postFeedback } from '../api/feedback'
 
-export default function FeedbackForm(){
+export default function FeedbackForm({ onSubmitted }) {
   const [text, setText] = useState('')
   const [loading, setLoading] = useState(false)
   const [msg, setMsg] = useState(null)
+
   const submit = async (e) => {
     e.preventDefault()
-    if(!text.trim()) return
+    if (!text.trim()) return
     setLoading(true); setMsg(null)
-    try{
+    try {
       await postFeedback({ text })
       setMsg('Submitted!')
       setText('')
-    }catch(err){
+      onSubmitted?.()  // notify parent to refresh
+    } catch (err) {
       setMsg('Submit failed: ' + (err?.response?.data?.detail || err.message))
-    }finally{
+    } finally {
       setLoading(false)
     }
   }
+
   return (
-    <form onSubmit={submit} style={{display:'grid', gap:8, marginBottom:16}}>
-      <textarea rows={4} value={text} onChange={e=>setText(e.target.value)} placeholder="Type feedback in any language..." />
-      <button disabled={loading}>{loading ? 'Submitting...' : 'Submit Feedback'}</button>
-      {msg && <div style={{opacity:0.8}}>{msg}</div>}
+    <form onSubmit={submit} style={{ display: 'grid', gap: 8, marginBottom: 16 }}>
+      <textarea rows={4} value={text} onChange={e => setText(e.target.value)} placeholder="Type feedback in any language..." />
+      <button disabled={loading}>{loading ? 'Submitting…' : 'Submit Feedback'}</button>
+      {msg && <div style={{ opacity: 0.8 }}>{msg}</div>}
     </form>
   )
 }
