@@ -1,136 +1,130 @@
 # Multilingual Customer Feedback Analyzer
 
-A full-stack demo application for collecting, translating, and analyzing customer feedback across multiple languages.  
-It uses **Gemini Studio** for translation, language detection, and sentiment classification, with a **React frontend**, **FastAPI backend**, and a **PostgreSQL** database.  
+## 📌 Project Summary
+A full-stack demo app for collecting and analyzing multilingual customer feedback.  
+It integrates **Gemini Studio** to detect language, translate non-English feedback into English, and classify sentiment (positive/neutral/negative).  
+Admins can search and filter feedback by product, language, or sentiment, while dashboards visualize sentiment trends.
+
+Stack:
+- **Backend:** FastAPI + SQLAlchemy
+- **Frontend:** React (Vite, Chart.js)
+- **Database:** PostgreSQL (via SQLAlchemy ORM)
+- **AI:** Google Gemini
+- **Containerization:** Docker Compose
 
 ---
 
-## 🚀 Project Summary
-This tool allows customers to submit product feedback in any language. The backend automatically:
-- Detects the input language
-- Translates non-English feedback to English
-- Classifies sentiment (positive / neutral / negative)
-
-Admins can:
-- Search and filter feedback by product or language
-- View original + translated versions side by side
-- Monitor sentiment trends in real time (via SSE-powered dashboard)
-
----
-
-## 🛠 Getting Started
+## 🚀 Getting Started
 
 ### Prerequisites
-- Docker & Docker Compose installed
-- A valid **Gemini Studio API key**  
+- Docker + Docker Compose
+- Gemini API key (`GEMINI_API_KEY`)
 
-### Environment Variables
-Create a `.env` file in the project root:
-
-```ini
-# Backend
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.0-flash
-ADMIN_TOKEN=supersecret
-
-# Database
-POSTGRES_USER=feedback
-POSTGRES_PASSWORD=feedback123
-POSTGRES_DB=feedbackdb
-```
-
-### Build & Run
+### Steps
 ```bash
-docker compose up --build
+# Clone repo
+git clone <your_repo_url>
+cd multilingual-feedback
+
+# Copy example envs and edit
+cp backend/.env.example backend/.env
+
+# Build & run full stack
+docker-compose up --build
 ```
 
-- Frontend: http://localhost:3000  
-- Backend API: http://localhost:8000/api  
+### Environment variables
+- `GEMINI_API_KEY`: your Google Gemini key
+- `GEMINI_MODEL`: optional, defaults to `gemini-2.0-flash`
+- `ADMIN_TOKEN`: shared secret for admin access (default: `changeme`)
 
 ---
 
 ## ▶️ How to Run
-1. Open the frontend at [http://localhost:3000](http://localhost:3000)  
-2. Submit feedback (optionally with product ID)  
-3. View live charts and sentiment breakdown  
-4. To unlock **search & filter**, enter your admin token in the “Admin” bar  
+- Backend API: http://localhost:8000/api/docs  
+- Frontend UI: http://localhost:3000  
+- Database persists via Docker volume.
 
 ---
 
-## 🔌 API Routes
+## 📡 API Routes
 
 ### Feedback
-- `POST /api/feedback/` → Submit feedback  
+- `POST /api/feedback/`
   ```json
   { "text": "Ce produit est excellent!", "product_id": 101 }
   ```
-- `GET /api/feedback/` → List feedback (admin only, supports filters)  
-  ```http
-  GET /api/feedback?language=fr&product_id=101
-  Headers: X-Admin-Token: <token>
+- `GET /api/feedback/` (admin only, supports filters/pagination)
+  ```
+  ?product_id=101&language=fr&sentiment=positive&limit=20&offset=0
   ```
 
 ### Stats
-- `GET /api/stats/` → Sentiment summary  
-- `GET /api/stats/stream` → Server-Sent Events (live updates)  
-- `GET /api/stats/trends` → Time-series breakdown  
+- `GET /api/stats` → sentiment percentages
+- `GET /api/stats/stream` → SSE stream (push updates)
+- `GET /api/stats/trends` → sentiment counts over time
 
-### Translation
-- `POST /api/translate/` → Translate + sentiment for a raw string  
-
----
-
-## 🖼 Frontend Overview
-- Built with **React + Vite**  
-- Features:
-  - Feedback form with optional product ID
-  - Real-time dashboard of sentiment trends (via SSE)
-  - Admin-only search and filtering
-  - Displays original + translated text side by side  
+### Translate (debug)
+- `POST /api/translate`  
+  ```json
+  { "text": "هذا رائع" }
+  ```
 
 ---
 
-## ⚙ Backend Overview
-- **FastAPI** REST API with OpenAPI docs at `/docs`
-- Async database access with SQLAlchemy + PostgreSQL
-- **AI client** wraps Gemini Studio calls for:
-  - Language detection
-  - Translation
-  - Sentiment classification
-- Protected admin routes via `X-Admin-Token`  
+## 🖥 Frontend + Backend Overview
+- **Frontend:**  
+  - React SPA (Vite)  
+  - Feedback form, admin bar, dashboard (charts + list)  
+  - Uses Axios to call FastAPI backend  
+  - SSE for live stats updates  
+  - Pagination UI for browsing feedback  
+
+- **Backend:**  
+  - FastAPI w/ SQLAlchemy ORM  
+  - Routes: `/feedback`, `/stats`, `/translate`  
+  - Middleware for admin token check  
+  - Async integration with Gemini for translation + sentiment  
 
 ---
 
 ## 🗄 Data Schema
-
-### feedback
-| Field            | Type        | Notes                                |
-|------------------|------------|--------------------------------------|
-| id               | int (PK)   | Auto increment                       |
-| product_id       | int        | Optional product identifier          |
-| original_text    | text       | Raw customer input                   |
-| translated_text  | text       | English translation (if needed)      |
-| language         | varchar    | ISO-639-1 code of original language  |
-| sentiment        | varchar    | "positive", "neutral", "negative"    |
-| created_at       | timestamp  | Auto-generated                       |
+```sql
+Feedback(
+  id SERIAL PRIMARY KEY,
+  product_id INT NULL,
+  original_text TEXT NOT NULL,
+  translated_text TEXT NULL,
+  language VARCHAR(10) NOT NULL,
+  sentiment VARCHAR(20) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW()
+)
+```
 
 ---
 
 ## 🤖 Gemini Studio Integration
-The backend calls Gemini via the Python SDK:
-- **Prompt 1**: Detect source language  
-- **Prompt 2**: Translate to English + classify sentiment  
-
-All AI responses are parsed as JSON to keep output structured.  
-
----
-
-## ⚠️ Known Limitations
-- No authentication beyond simple `X-Admin-Token` header (for demo only)  
-- No pagination UI yet (backend supports `limit`/`offset`)  
-- Charts refresh in real-time via SSE, but may fall back to polling if SSE fails  
-- Gemini model quality may vary for low-resource languages  
+- Detects input language (`ISO-639-1`)  
+- Translates non-English into English  
+- Classifies sentiment (positive/neutral/negative)  
+- Uses JSON-only structured outputs for safe parsing
 
 ---
 
-✅ With this setup, the project is **demo-ready**: you can submit feedback in any language, see translations and sentiment in real time, and filter/search as an admin.  
+## ⚠️ Limitations / Known Issues
+- No user authentication beyond admin token (basic security only).  
+- Only supports English as translation target.  
+- SSE may fall back to polling if client/browser issues occur.  
+- Basic UI styling, not production-grade.  
+- Pagination is offset-based, no cursor-based API yet.
+
+---
+
+## ✅ Status
+Core features working:  
+✔ Feedback submission  
+✔ Gemini integration (detect/translate/analyze)  
+✔ Stats & dashboard charts  
+✔ Admin search/filter + pagination  
+✔ SSE auto-refresh  
+✔ Dockerized full stack
