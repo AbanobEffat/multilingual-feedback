@@ -7,6 +7,7 @@ from app.ai_client import analyze_text
 from app import events
 from typing import Optional
 from fastapi import Query
+from app.security import require_admin
 
 router = APIRouter()
 
@@ -44,7 +45,7 @@ async def create_feedback(payload: FeedbackCreate, db: Session = Depends(get_db)
 
 
 
-@router.get("/")
+@router.get("/", dependencies=[Depends(require_admin)]) 
 async def list_feedback(
     db: Session = Depends(get_db),
     q: Optional[str] = Query(None),
